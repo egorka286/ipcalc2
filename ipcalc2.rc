@@ -1,114 +1,41 @@
-// Microsoft Visual C++ generated resource script.
-//
+#include <windows.h>
 #include "resource.h"
-
-#define APSTUDIO_READONLY_SYMBOLS
-/////////////////////////////////////////////////////////////////////////////
-//
-// Generated from the TEXTINCLUDE 2 resource.
-//
-#include "winres.h"
-
-/////////////////////////////////////////////////////////////////////////////
-#undef APSTUDIO_READONLY_SYMBOLS
-
-/////////////////////////////////////////////////////////////////////////////
-// Русский (Россия) resources
-
-#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_RUS)
-LANGUAGE LANG_RUSSIAN, SUBLANG_DEFAULT
-#pragma code_page(1251)
-
-#ifdef APSTUDIO_INVOKED
-/////////////////////////////////////////////////////////////////////////////
-//
-// TEXTINCLUDE
-//
-
-1 TEXTINCLUDE 
-BEGIN
-    "resource.h\0"
-END
-
-2 TEXTINCLUDE 
-BEGIN
-    "#include ""winres.h""\r\n"
-    "\0"
-END
-
-3 TEXTINCLUDE 
-BEGIN
-    "\r\n"
-    "\0"
-END
-
-#endif    // APSTUDIO_INVOKED
-
 
 /////////////////////////////////////////////////////////////////////////////
 //
 // Dialog
 //
 
-IDD_DIALOG1 DIALOGEX 0, 0, 493, 343
+IDD_DIALOG1 DIALOGEX 0, 0, 415, 185
 STYLE DS_ABSALIGN | DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
 EXSTYLE WS_EX_APPWINDOW
 CAPTION "IP Калькулятор"
 FONT 8, "MS Shell Dlg", 400, 0, 0xCC
 BEGIN
-    GROUPBOX        "Информация о сети",IDC_STATIC,7,7,478,117
-    GROUPBOX        "Статический",IDC_STATIC,7,131,477,205
-    CONTROL         "",IDC_IPADDRESS1,"SysIPAddress32",WS_TABSTOP,74,32,100,15
-    CONTROL         "IP адрес",IDC_STATIC,"Static",SS_LEFTNOWORDWRAP | WS_GROUP,23,34,30,8,WS_EX_RIGHT
-    LTEXT           "Маска сети",IDC_STATIC,17,60,39,8
-    LISTBOX         IDC_LIST1,237,146,235,181,LBS_SORT | LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
-    LTEXT           "",IDC_STATIC1,189,26,280,76
-    PUSHBUTTON      "Посчитать",IDC_BUTTON1,69,87,50,14
-    COMBOBOX        IDC_COMBO1,73,58,100,171,CBS_DROPDOWNLIST | CBS_NOINTEGRALHEIGHT | WS_VSCROLL,WS_EX_CLIENTEDGE
+GROUPBOX        "Информация о сети", IDC_INFO_GROUP, 5, 5, 405, 80
+
+	LTEXT         "IP адрес", IDC_INFO_TEXT_IP, 10, 20, 40, 8
+	CONTROL         "", IDC_INFO_IP, "SysIPAddress32", WS_TABSTOP, 55, 20, 90, 15
+
+	LTEXT           "Маска сети", IDC_INFO_TEXT_MASK, 10, 40, 40, 8
+	COMBOBOX        IDC_INFO_MASK, 55, 40, 90, 150, CBS_DROPDOWNLIST | CBS_NOINTEGRALHEIGHT | WS_VSCROLL, WS_EX_CLIENTEDGE
+
+	LTEXT           "", IDC_OUT_TEXT, 155, 15, 50, 65
+	LTEXT           "", IDC_OUT_DEC, 205, 15, 60, 65
+	LTEXT           "", IDC_OUT_BIN, 265, 15, 140, 65
+
+///////////////////////////////////////////////////////////////////////////////
+
+GROUPBOX        "Расчёт сетей", IDC_CALC_GROUP, 5, 90, 405, 90
+	GROUPBOX        "Выданная сеть", IDC_FULL_GROUP, 10, 100, 140, 70
+
+		LTEXT           "IP адрес", IDC_FULL_TEXT_IP, 15, 115, 40, 8
+		CONTROL         "", IDC_FULL_IP, "SysIPAddress32", WS_TABSTOP, 55, 115, 90, 15
+
+		LTEXT           "Маска сети", IDC_FULL_TEXT_MASK, 15, 135, 40, 8
+		COMBOBOX        IDC_FULL_MASK, 55, 135, 90, 55, CBS_DROPDOWNLIST | CBS_NOINTEGRALHEIGHT | WS_VSCROLL, WS_EX_CLIENTEDGE
+
+	PUSHBUTTON      "Добавить", IDC_ADD_BUTTON, 160, 105, 50, 14
+	PUSHBUTTON      "Удалить", IDC_DEL_BUTTON, 160, 127, 50, 14
+	LISTBOX         IDC_NET_LIST, 220, 100, 175, 85
 END
-
-
-/////////////////////////////////////////////////////////////////////////////
-//
-// DESIGNINFO
-//
-
-#ifdef APSTUDIO_INVOKED
-GUIDELINES DESIGNINFO
-BEGIN
-    IDD_DIALOG1, DIALOG
-    BEGIN
-        LEFTMARGIN, 7
-        RIGHTMARGIN, 486
-        TOPMARGIN, 7
-        BOTTOMMARGIN, 336
-    END
-END
-#endif    // APSTUDIO_INVOKED
-
-
-/////////////////////////////////////////////////////////////////////////////
-//
-// AFX_DIALOG_LAYOUT
-//
-
-IDD_DIALOG1 AFX_DIALOG_LAYOUT
-BEGIN
-    0
-END
-
-#endif    // Русский (Россия) resources
-/////////////////////////////////////////////////////////////////////////////
-
-
-
-#ifndef APSTUDIO_INVOKED
-/////////////////////////////////////////////////////////////////////////////
-//
-// Generated from the TEXTINCLUDE 3 resource.
-//
-
-
-/////////////////////////////////////////////////////////////////////////////
-#endif    // not APSTUDIO_INVOKED
-
