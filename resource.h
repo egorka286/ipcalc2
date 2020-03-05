@@ -1,4 +1,5 @@
 #define IDD_DIALOG1					101
+#define IDD_ADD_NET_DIALOG			102
 
 #define IDC_INFO_GROUP				1001
 #define IDC_INFO_TEXT_IP			1002
@@ -17,5 +18,11 @@
 #define IDC_ADD_BUTTON				1015
 #define IDC_DEL_BUTTON				1016
 #define IDC_NET_LIST				1017
+
+#define IDC_NAME_TEXT				1018
+#define IDC_ADD_NAME				1019
+#define IDC_HOSTS					1020
+#define IDC_ADD_HOSTS				1021
+#define IDC_ADD_OK					1022
 
 #define WM_NET_INFO					WM_USER + 0x100

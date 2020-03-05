@@ -27,7 +27,7 @@ GROUPBOX        "Информация о сети", IDC_INFO_GROUP, 5, 5, 405, 80
 ///////////////////////////////////////////////////////////////////////////////
 
 GROUPBOX        "Расчёт сетей", IDC_CALC_GROUP, 5, 90, 405, 90
-	GROUPBOX        "Выданная сеть", IDC_FULL_GROUP, 10, 100, 140, 70
+	GROUPBOX        "Выданная сеть", IDC_FULL_GROUP, 10, 100, 140, 70, BS_CENTER
 
 		LTEXT           "IP адрес", IDC_FULL_TEXT_IP, 15, 115, 40, 8
 		CONTROL         "", IDC_FULL_IP, "SysIPAddress32", WS_TABSTOP, 55, 115, 90, 15
@@ -38,4 +38,17 @@ GROUPBOX        "Расчёт сетей", IDC_CALC_GROUP, 5, 90, 405, 90
 	PUSHBUTTON      "Добавить", IDC_ADD_BUTTON, 160, 105, 50, 14
 	PUSHBUTTON      "Удалить", IDC_DEL_BUTTON, 160, 127, 50, 14
 	LISTBOX         IDC_NET_LIST, 220, 100, 175, 85
+END
+
+IDD_ADD_NET_DIALOG DIALOGEX 0, 0, 135, 60
+STYLE DS_ABSALIGN | DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
+EXSTYLE WS_EX_APPWINDOW
+CAPTION "Добавить сеть"
+FONT 8, "MS Shell Dlg", 400, 0, 0xCC
+BEGIN
+LTEXT			"Название сети", IDC_NAME_TEXT, 5, 5, 40, 10
+EDITTEXT		IDC_ADD_NAME, 50, 5, 80, 10, ES_LEFT
+LTEXT			"Число хостов", IDC_HOSTS, 5, 20, 40, 10
+EDITTEXT		IDC_ADD_HOSTS, 50, 20, 40, 10, ES_LEFT | ES_NUMBER
+PUSHBUTTON		"OK", IDC_ADD_OK, 40, 40, 50, 14
 END

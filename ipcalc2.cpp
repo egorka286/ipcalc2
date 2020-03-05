@@ -20,6 +20,7 @@ struct net
 typedef struct net NET;
 
 BOOL CALLBACK DialogProc(HWND, UINT, WPARAM, LPARAM);
+BOOL CALLBACK AddNet(HWND, UINT, WPARAM, LPARAM);
 TCHAR* dec(TCHAR* Buf, DWORD n);
 TCHAR* bin(TCHAR* Buf, DWORD n);
 DWORD get_mask(DWORD hosts);
@@ -137,6 +138,10 @@ BOOL CALLBACK DialogProc(HWND hWnd, UINT uMessage, WPARAM wParam, LPARAM lParam)
 	case WM_COMMAND:
 		switch (LOWORD(wParam))
 		{
+		case IDC_ADD_BUTTON:
+			DialogBox(GetModuleHandle(NULL), MAKEINTRESOURCE(IDD_ADD_NET_DIALOG), hWnd, AddNet);
+			break;
+
 		case IDC_INFO_MASK:
 			if (HIWORD(wParam) == CBN_SELCHANGE)
 			SendMessage(hWnd, WM_NET_INFO, 0, 0);
@@ -197,6 +202,17 @@ BOOL CALLBACK DialogProc(HWND hWnd, UINT uMessage, WPARAM wParam, LPARAM lParam)
 		SetWindowText(hOutBin, out_buf);
 		return TRUE;
 
+	case WM_CLOSE:
+		EndDialog(hWnd, 0);
+		return TRUE;
+	}
+	return FALSE;
+}
+
+BOOL CALLBACK AddNet(HWND hWnd, UINT uMessage, WPARAM wParam, LPARAM lParam)
+{
+	switch (uMessage)
+	{
 	case WM_CLOSE:
 		EndDialog(hWnd, 0);
 		return TRUE;
