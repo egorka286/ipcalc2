@@ -15,14 +15,16 @@
 #define IDC_FULL_IP					1012
 #define IDC_FULL_TEXT_MASK			1013
 #define IDC_FULL_MASK				1014
-#define IDC_ADD_BUTTON				1015
-#define IDC_DEL_BUTTON				1016
-#define IDC_NET_LIST				1017
+#define IDC_ALL_IP					1015
+#define IDC_ADD_BUTTON				1016
+#define IDC_DEL_BUTTON				1017
+#define IDC_CLR_BUTTON				1018
+#define IDC_NET_LIST				1019
 
-#define IDC_NAME_TEXT				1018
-#define IDC_ADD_NAME				1019
-#define IDC_HOSTS					1020
-#define IDC_ADD_HOSTS				1021
-#define IDC_ADD_OK					1022
+#define IDC_NAME_TEXT				1020
+#define IDC_ADD_NAME				1021
+#define IDC_HOSTS					1022
+#define IDC_ADD_HOSTS				1023
+#define IDC_ADD_OK					1024
 
 #define WM_NET_INFO					WM_USER + 0x100
