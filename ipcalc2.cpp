@@ -4,395 +4,419 @@
 #include <stdio.h>
 #include "resource.h"
 
-union ip_u
+union unIP
 {
 	DWORD adr;
 	BYTE oct[4];
 };
 
-struct net
+struct net_s
 {
 	TCHAR name[32];
-	union ip_u ip;
-	union ip_u mask;
+	union unIP ip;
+	union unIP mask;
 };
 
-typedef struct net NET;
+typedef struct net_s NET;
 
-NET* AllNet = NULL;
-int AllCount = 0;
-DWORD AllIP;
+NET* stNets = NULL;
+INT cNets = 0;
+DWORD dwAvIP;
 
 BOOL CALLBACK DialogProc(HWND, UINT, WPARAM, LPARAM);
-BOOL CALLBACK AddNet(HWND, UINT, WPARAM, LPARAM);
-TCHAR* dec(TCHAR* Buf, DWORD n);
-TCHAR* bin(TCHAR* Buf, DWORD n);
-DWORD get_mask(DWORD hosts);
-int GetMaskPrefix(DWORD mask);
+BOOL CALLBACK AddNetProc(HWND, UINT, WPARAM, LPARAM);
+TCHAR* DecIP(TCHAR* Buf, DWORD n);
+TCHAR* BinIP(TCHAR* szBuf, DWORD dwIP);
+DWORD GetMaskOfHosts(DWORD cHosts);
+INT GetMaskPrefix(DWORD dwMask);
+BOOL AddNet(NET stNet0, NET stNet, BOOL fSort);
+VOID SortNets(VOID);
+VOID ClrNets(VOID);
 
-INT WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInst, LPSTR lpszCmdLine, int nCmdShow)
+INT WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInst, LPSTR lpszCmdLine, INT nCmdShow)
 {
-		return DialogBox(hInstance, MAKEINTRESOURCE(IDD_DIALOG1), NULL, DialogProc);
+	return DialogBox(hInstance, MAKEINTRESOURCE(IDD_DIALOG1), NULL, DialogProc);
 }
 
 BOOL CALLBACK DialogProc(HWND hWnd, UINT uMessage, WPARAM wParam, LPARAM lParam)
 {
-	static HWND hOutText;
-	static HWND hOutDec;
-	static HWND hOutBin;
 	static HWND hInMask;
-	static HWND hInIP;
-	static HWND hFullIP;
 	static HWND hFullMask;
 	static HWND hNetList;
-	static HWND hAllIP;
-	TCHAR ip_buf[32];
-	TCHAR out_buf[216];
-	TCHAR out_tmp[64];
-	TCHAR dstr[16];
-	TCHAR bstr[36];
-	int net_prefix;
-	NET net0;
-	union ip_u net_name;
-	union ip_u net_broadcast;
+	TCHAR szDecIP[16] = { 0 };
 
 	switch (uMessage)
 	{
 	case WM_INITDIALOG:
-		hOutText = GetDlgItem(hWnd, IDC_OUT_TEXT);
-		hOutDec = GetDlgItem(hWnd, IDC_OUT_DEC);
-		hOutBin = GetDlgItem(hWnd, IDC_OUT_BIN);
+	{
+		HICON hIcon = LoadIcon(GetModuleHandle(NULL), MAKEINTRESOURCE(APPICON));
+		SendMessage(hWnd, WM_SETICON, ICON_BIG, (LPARAM)hIcon);
+
 		hInMask = GetDlgItem(hWnd, IDC_INFO_MASK);
-		hInIP = GetDlgItem(hWnd, IDC_INFO_IP);
-		hFullIP = GetDlgItem(hWnd, IDC_FULL_IP);
 		hFullMask = GetDlgItem(hWnd, IDC_FULL_MASK);
 		hNetList = GetDlgItem(hWnd, IDC_NET_LIST);
-		hAllIP = GetDlgItem(hWnd, IDC_ALL_IP);
 
-		SetWindowText(hInIP, TEXT("192.168.0.1"));
+		SetDlgItemText(hWnd, IDC_INFO_IP, TEXT("192.168.0.1"));
 
-		SendMessage(hInMask, CB_ADDSTRING, 0, LPARAM(TEXT(" /32 255.255.255.255")));
-		SendMessage(hInMask, CB_ADDSTRING, 0, LPARAM(TEXT(" /31 255.255.255.254")));
-		SendMessage(hInMask, CB_ADDSTRING, 0, LPARAM(TEXT(" /30 255.255.255.252")));
-		SendMessage(hInMask, CB_ADDSTRING, 0, LPARAM(TEXT(" /29 255.255.255.248")));
-		SendMessage(hInMask, CB_ADDSTRING, 0, LPARAM(TEXT(" /28 255.255.255.240")));
-		SendMessage(hInMask, CB_ADDSTRING, 0, LPARAM(TEXT(" /27 255.255.255.224")));
-		SendMessage(hInMask, CB_ADDSTRING, 0, LPARAM(TEXT(" /26 255.255.255.192")));
-		SendMessage(hInMask, CB_ADDSTRING, 0, LPARAM(TEXT(" /25 255.255.255.128")));
-		SendMessage(hInMask, CB_ADDSTRING, 0, LPARAM(TEXT(" /24 255.255.255.0")));
-		SendMessage(hInMask, CB_ADDSTRING, 0, LPARAM(TEXT(" /23 255.255.254.0")));
-		SendMessage(hInMask, CB_ADDSTRING, 0, LPARAM(TEXT(" /22 255.255.252.0")));
-		SendMessage(hInMask, CB_ADDSTRING, 0, LPARAM(TEXT(" /21 255.255.248.0")));
-		SendMessage(hInMask, CB_ADDSTRING, 0, LPARAM(TEXT(" /20 255.255.240.0")));
-		SendMessage(hInMask, CB_ADDSTRING, 0, LPARAM(TEXT(" /19 255.255.224.0")));
-		SendMessage(hInMask, CB_ADDSTRING, 0, LPARAM(TEXT(" /18 255.255.192.0")));
-		SendMessage(hInMask, CB_ADDSTRING, 0, LPARAM(TEXT(" /17 255.255.128.0")));
-		SendMessage(hInMask, CB_ADDSTRING, 0, LPARAM(TEXT(" /16 255.255.0.0")));
-		SendMessage(hInMask, CB_ADDSTRING, 0, LPARAM(TEXT(" /15 255.254.0.0")));
-		SendMessage(hInMask, CB_ADDSTRING, 0, LPARAM(TEXT(" /14 255.252.0.0")));
-		SendMessage(hInMask, CB_ADDSTRING, 0, LPARAM(TEXT(" /13 255.248.0.0")));
-		SendMessage(hInMask, CB_ADDSTRING, 0, LPARAM(TEXT(" /12 255.240.0.0")));
-		SendMessage(hInMask, CB_ADDSTRING, 0, LPARAM(TEXT(" /11 255.224.0.0")));
-		SendMessage(hInMask, CB_ADDSTRING, 0, LPARAM(TEXT(" /10 255.192.0.0")));
-		SendMessage(hInMask, CB_ADDSTRING, 0, LPARAM(TEXT(" /9 255.128.0.0")));
-		SendMessage(hInMask, CB_ADDSTRING, 0, LPARAM(TEXT(" /8 255.0.0.0")));
-		SendMessage(hInMask, CB_ADDSTRING, 0, LPARAM(TEXT(" /7 254.0.0.0")));
-		SendMessage(hInMask, CB_ADDSTRING, 0, LPARAM(TEXT(" /6 252.0.0.0")));
-		SendMessage(hInMask, CB_ADDSTRING, 0, LPARAM(TEXT(" /5 248.0.0.0")));
-		SendMessage(hInMask, CB_ADDSTRING, 0, LPARAM(TEXT(" /4 240.0.0.0")));
-		SendMessage(hInMask, CB_ADDSTRING, 0, LPARAM(TEXT(" /3 224.0.0.0")));
-		SendMessage(hInMask, CB_ADDSTRING, 0, LPARAM(TEXT(" /2 192.0.0.0")));
-		SendMessage(hInMask, CB_ADDSTRING, 0, LPARAM(TEXT(" /1 128.0.0.0")));
-		SendMessage(hInMask, CB_ADDSTRING, 0, LPARAM(TEXT(" /0 0.0.0.0")));
+		TCHAR szMask[][21] =
+		{
+		TEXT(" /30 255.255.255.252"),
+		TEXT(" /29 255.255.255.248"),
+		TEXT(" /28 255.255.255.240"),
+		TEXT(" /27 255.255.255.224"),
+		TEXT(" /26 255.255.255.192"),
+		TEXT(" /25 255.255.255.128"),
+		TEXT(" /24 255.255.255.0"),
+		TEXT(" /23 255.255.254.0"),
+		TEXT(" /22 255.255.252.0"),
+		TEXT(" /21 255.255.248.0"),
+		TEXT(" /20 255.255.240.0"),
+		TEXT(" /19 255.255.224.0"),
+		TEXT(" /18 255.255.192.0"),
+		TEXT(" /17 255.255.128.0"),
+		TEXT(" /16 255.255.0.0"),
+		TEXT(" /15 255.254.0.0"),
+		TEXT(" /14 255.252.0.0"),
+		TEXT(" /13 255.248.0.0"),
+		TEXT(" /12 255.240.0.0"),
+		TEXT(" /11 255.224.0.0"),
+		TEXT(" /10 255.192.0.0"),
+		TEXT(" /9 255.128.0.0"),
+		TEXT(" /8 255.0.0.0"),
+		TEXT(" /7 254.0.0.0"),
+		TEXT(" /6 252.0.0.0"),
+		TEXT(" /5 248.0.0.0"),
+		TEXT(" /4 240.0.0.0"),
+		TEXT(" /3 224.0.0.0"),
+		TEXT(" /2 192.0.0.0"),
+		TEXT(" /1 128.0.0.0")
+		};
 
-		SendMessage(hFullMask, CB_ADDSTRING, 0, LPARAM(TEXT(" /32 255.255.255.255")));
-		SendMessage(hFullMask, CB_ADDSTRING, 0, LPARAM(TEXT(" /31 255.255.255.254")));
-		SendMessage(hFullMask, CB_ADDSTRING, 0, LPARAM(TEXT(" /30 255.255.255.252")));
-		SendMessage(hFullMask, CB_ADDSTRING, 0, LPARAM(TEXT(" /29 255.255.255.248")));
-		SendMessage(hFullMask, CB_ADDSTRING, 0, LPARAM(TEXT(" /28 255.255.255.240")));
-		SendMessage(hFullMask, CB_ADDSTRING, 0, LPARAM(TEXT(" /27 255.255.255.224")));
-		SendMessage(hFullMask, CB_ADDSTRING, 0, LPARAM(TEXT(" /26 255.255.255.192")));
-		SendMessage(hFullMask, CB_ADDSTRING, 0, LPARAM(TEXT(" /25 255.255.255.128")));
-		SendMessage(hFullMask, CB_ADDSTRING, 0, LPARAM(TEXT(" /24 255.255.255.0")));
-		SendMessage(hFullMask, CB_ADDSTRING, 0, LPARAM(TEXT(" /23 255.255.254.0")));
-		SendMessage(hFullMask, CB_ADDSTRING, 0, LPARAM(TEXT(" /22 255.255.252.0")));
-		SendMessage(hFullMask, CB_ADDSTRING, 0, LPARAM(TEXT(" /21 255.255.248.0")));
-		SendMessage(hFullMask, CB_ADDSTRING, 0, LPARAM(TEXT(" /20 255.255.240.0")));
-		SendMessage(hFullMask, CB_ADDSTRING, 0, LPARAM(TEXT(" /19 255.255.224.0")));
-		SendMessage(hFullMask, CB_ADDSTRING, 0, LPARAM(TEXT(" /18 255.255.192.0")));
-		SendMessage(hFullMask, CB_ADDSTRING, 0, LPARAM(TEXT(" /17 255.255.128.0")));
-		SendMessage(hFullMask, CB_ADDSTRING, 0, LPARAM(TEXT(" /16 255.255.0.0")));
-		SendMessage(hFullMask, CB_ADDSTRING, 0, LPARAM(TEXT(" /15 255.254.0.0")));
-		SendMessage(hFullMask, CB_ADDSTRING, 0, LPARAM(TEXT(" /14 255.252.0.0")));
-		SendMessage(hFullMask, CB_ADDSTRING, 0, LPARAM(TEXT(" /13 255.248.0.0")));
-		SendMessage(hFullMask, CB_ADDSTRING, 0, LPARAM(TEXT(" /12 255.240.0.0")));
-		SendMessage(hFullMask, CB_ADDSTRING, 0, LPARAM(TEXT(" /11 255.224.0.0")));
-		SendMessage(hFullMask, CB_ADDSTRING, 0, LPARAM(TEXT(" /10 255.192.0.0")));
-		SendMessage(hFullMask, CB_ADDSTRING, 0, LPARAM(TEXT(" /9 255.128.0.0")));
-		SendMessage(hFullMask, CB_ADDSTRING, 0, LPARAM(TEXT(" /8 255.0.0.0")));
-		SendMessage(hFullMask, CB_ADDSTRING, 0, LPARAM(TEXT(" /7 254.0.0.0")));
-		SendMessage(hFullMask, CB_ADDSTRING, 0, LPARAM(TEXT(" /6 252.0.0.0")));
-		SendMessage(hFullMask, CB_ADDSTRING, 0, LPARAM(TEXT(" /5 248.0.0.0")));
-		SendMessage(hFullMask, CB_ADDSTRING, 0, LPARAM(TEXT(" /4 240.0.0.0")));
-		SendMessage(hFullMask, CB_ADDSTRING, 0, LPARAM(TEXT(" /3 224.0.0.0")));
-		SendMessage(hFullMask, CB_ADDSTRING, 0, LPARAM(TEXT(" /2 192.0.0.0")));
-		SendMessage(hFullMask, CB_ADDSTRING, 0, LPARAM(TEXT(" /1 128.0.0.0")));
-		SendMessage(hFullMask, CB_ADDSTRING, 0, LPARAM(TEXT(" /0 0.0.0.0")));
+		for (INT i = 0; i < 30; i++)
+		{
+			SendMessage(hInMask, CB_ADDSTRING, 0, (LPARAM)szMask[i]);
+			SendMessage(hFullMask, CB_ADDSTRING, 0, (LPARAM)szMask[i]);
+		}
 
-		SendMessage(hInMask, CB_SETCURSEL, 8, 0);
+		SendMessage(hInMask, CB_SETCURSEL, 6, 0);
 
-		SendMessage(hWnd, WM_NET_INFO, 0, 0);
+		const INT nTabs[3] = { 10, 100, 75 };
+		SendMessage(hNetList, LB_SETTABSTOPS, 3, (LPARAM)nTabs);
+		SendMessage(hNetList, LB_SETCOLUMNWIDTH, 400, 0);
 
 		return TRUE;
-
+	}
 	case WM_COMMAND:
+	{
 		switch (LOWORD(wParam))
 		{
 		case IDC_ADD_BUTTON:
-			GetWindowText(hFullIP, dstr, 16);
-			if (lstrcmp(dstr, TEXT("0.0.0.0")) == 0 || SendMessage(hFullMask, CB_GETCURSEL, 0, 0) == -1)
-				MessageBox(hWnd, TEXT("Нет сети"), 0, MB_OK);
+		{
+			GetDlgItemText(hWnd, IDC_FULL_IP, szDecIP, sizeof(szDecIP));
+			if (lstrcmp(szDecIP, TEXT("0.0.0.0")) == 0 || SendMessage(hFullMask, CB_GETCURSEL, 0, 0) == -1)
+				MessageBox(hWnd, TEXT("Не выбрана сеть"), 0, MB_OK);
 			else
-				DialogBox(GetModuleHandle(NULL), MAKEINTRESOURCE(IDD_ADD_NET_DIALOG), hWnd, AddNet);
+				DialogBox(GetModuleHandle(NULL), MAKEINTRESOURCE(IDD_ADD_NET_DIALOG), hWnd, AddNetProc);
+			InvalidateRect(hWnd, NULL, FALSE);
 			break;
-
+		}
 		case IDC_CLR_BUTTON:
-			SendMessage(hNetList, LB_RESETCONTENT, 0, 0);
-			if (AllNet)
-				free(AllNet);
-			AllNet = NULL;
-			AllCount = 0;
-			AllIP = ~(0xFFFFFFFF << SendMessage(hFullMask, CB_GETCURSEL, 0, 0)) + 1;
-			wsprintf(out_buf, TEXT("Доступно IP: %lu"), AllIP);
-			SetWindowText(hAllIP, out_buf);
+		{
+			ClrNets();
+			dwAvIP = ~(0xFFFFFFFF << (SendMessage(hFullMask, CB_GETCURSEL, 0, 0) + 2)) + 1;
+			InvalidateRect(hWnd, NULL, FALSE);
 			break;
-
+		}
 		case IDC_INFO_MASK:
+		{
 			if (HIWORD(wParam) == CBN_SELCHANGE)
-				SendMessage(hWnd, WM_NET_INFO, 0, 0);
+				InvalidateRect(hWnd, NULL, FALSE);
 			break;
-
+		}
 		case IDC_INFO_IP:
+		{
 			if (HIWORD(wParam) == EN_CHANGE)
-				SendMessage(hWnd, WM_NET_INFO, 0, 0);
+				InvalidateRect(hWnd, NULL, FALSE);
 			break;
-
-		case IDC_FULL_MASK:
-			if (HIWORD(wParam) == CBN_SELCHANGE)
+		}
+		case IDC_FULL_IP:
+		{
+			if (HIWORD(wParam) == EN_CHANGE)
 			{
-				AllIP = ~(0xFFFFFFFF << SendMessage(hFullMask, CB_GETCURSEL, 0, 0)) + 1;
-				wsprintf(out_buf, TEXT("Доступно IP: %lu"), AllIP);
-				SetWindowText(hAllIP, out_buf);
-				SendMessage(hNetList, LB_RESETCONTENT, 0, 0);
-				if (AllNet)
-					free(AllNet);
-				AllNet = NULL;
-				AllCount = 0;
-			}
-			break;
-
-		case IDC_NET_LIST:
-			if (HIWORD(wParam) == LBN_SELCHANGE)
-			{
-				int index = SendMessage(hNetList, LB_GETCURSEL, 0, 0);
-				SetWindowText(hInIP, dec(dstr, AllNet[index].ip.adr));
-				SendMessage(hInMask, CB_SETCURSEL, 32 - GetMaskPrefix(AllNet[index].mask.adr), 0);
-				SendMessage(hWnd, WM_NET_INFO, 0, 0);
+				ClrNets();
+				dwAvIP = ~(0xFFFFFFFF << (SendMessage(hFullMask, CB_GETCURSEL, 0, 0) + 2)) + 1;
+				InvalidateRect(hWnd, NULL, FALSE);
 			}
 			break;
 		}
+		case IDC_FULL_MASK:
+		{
+			if (HIWORD(wParam) == CBN_SELCHANGE)
+			{
+				ClrNets();
+				dwAvIP = ~(0xFFFFFFFF << (SendMessage(hFullMask, CB_GETCURSEL, 0, 0) + 2)) + 1;
+				InvalidateRect(hWnd, NULL, FALSE);
+			}
+			break;
+		}
+		case IDC_NET_LIST:
+		{
+			if (HIWORD(wParam) == LBN_SELCHANGE)
+			{
+				INT index = SendMessage(hNetList, LB_GETCURSEL, 0, 0);
+				SetDlgItemText(hWnd, IDC_INFO_IP, DecIP(szDecIP, stNets[index].ip.adr));
+				SendMessage(hInMask, CB_SETCURSEL, 30 - GetMaskPrefix(stNets[index].mask.adr), 0);
+				InvalidateRect(hWnd, NULL, FALSE);
+			}
+			break;
+		}
+		}
 		return TRUE;
+	}
+	case WM_PAINT:
+	{
+		union unIP dwIP;
+		DWORD dwMask;
+		DWORD dwNetName;
+		DWORD dwNetMin;
+		DWORD dwNetMax;
+		DWORD dwNetBroadcast;
+		INT iMaskPref;
+		DWORD dwNetHosts;
+		TCHAR szBinIP[36] = { 0 };
+		TCHAR szOutText[216] = { 0 };
+		TCHAR szOutTmp[64] = { 0 };
 
-	case WM_NET_INFO:
-		GetWindowText(hInIP, ip_buf, 32);
-		_stscanf(ip_buf, TEXT("%hhu.%hhu.%hhu.%hhu"), &net0.ip.oct[3], &net0.ip.oct[2], &net0.ip.oct[1], &net0.ip.oct[0]);
+		GetDlgItemText(hWnd, IDC_INFO_IP, szDecIP, sizeof(szDecIP));
+		_stscanf(szDecIP, TEXT("%hhu.%hhu.%hhu.%hhu"), &dwIP.oct[3], &dwIP.oct[2], &dwIP.oct[1], &dwIP.oct[0]);
 
-		net_prefix = SendMessage(hInMask, CB_GETCURSEL, 0, 0);
-		net0.mask.adr = 0xFFFFFFFF << net_prefix;
+		iMaskPref = 30 - SendMessage(hInMask, CB_GETCURSEL, 0, 0);
+		dwMask = 0xFFFFFFFF << (32 - iMaskPref);
 
-		net_name.adr = net0.ip.adr & net0.mask.adr;
-		net_broadcast.adr = net_name.adr + ~net0.mask.adr;
+		dwNetName = dwIP.adr & dwMask;
+		dwNetMin = dwNetName + 1;
+		dwNetBroadcast = dwNetName + ~dwMask;
+		dwNetMax = dwNetBroadcast - 1;
+		dwNetHosts = ~dwMask - 1;
 
-		wsprintf(out_buf, TEXT("IP адрес\nПрефикс\nМаска\nИмя сети\nПервый IP\nПоследний IP\nBroadcast\nЧисло хостов"));
-		SetWindowText(hOutText, out_buf);
+		wsprintf(szOutText, TEXT("IP адрес\nПрефикс\nМаска\nИмя сети\nПервый IP\nПоследний IP\nBroadcast\nЧисло хостов"));
+		SetDlgItemText(hWnd, IDC_OUT_TEXT, szOutText);
 
-		wsprintf(out_buf, TEXT("%s\n"), dec(dstr, net0.ip.adr));
-		wsprintf(out_tmp, TEXT("%d\n"), 32 - net_prefix);
-		lstrcat(out_buf, out_tmp);
-		wsprintf(out_tmp, TEXT("%s\n"), dec(dstr, net0.mask.adr));
-		lstrcat(out_buf, out_tmp);
-		wsprintf(out_tmp, TEXT("%s\n"), dec(dstr, net_name.adr));
-		lstrcat(out_buf, out_tmp);
-		wsprintf(out_tmp, TEXT("%s\n"), dec(dstr, net_name.adr + 1));
-		lstrcat(out_buf, out_tmp);
-		wsprintf(out_tmp, TEXT("%s\n"), dec(dstr, net_broadcast.adr - 1));
-		lstrcat(out_buf, out_tmp);
-		wsprintf(out_tmp, TEXT("%s\n"), dec(dstr, net_broadcast.adr));
-		lstrcat(out_buf, out_tmp);
-		wsprintf(out_tmp, TEXT("%lu\n"), ~net0.mask.adr - 1);
-		lstrcat(out_buf, out_tmp);
-		SetWindowText(hOutDec, out_buf);
+		wsprintf(szOutText, TEXT("%s\n"), DecIP(szDecIP, dwIP.adr));
+		wsprintf(szOutTmp, TEXT("%d\n"), iMaskPref);
+		lstrcat(szOutText, szOutTmp);
+		wsprintf(szOutTmp, TEXT("%s\n"), DecIP(szDecIP, dwMask));
+		lstrcat(szOutText, szOutTmp);
+		wsprintf(szOutTmp, TEXT("%s\n"), DecIP(szDecIP, dwNetName));
+		lstrcat(szOutText, szOutTmp);
+		wsprintf(szOutTmp, TEXT("%s\n"), DecIP(szDecIP, dwNetMin));
+		lstrcat(szOutText, szOutTmp);
+		wsprintf(szOutTmp, TEXT("%s\n"), DecIP(szDecIP, dwNetMax));
+		lstrcat(szOutText, szOutTmp);
+		wsprintf(szOutTmp, TEXT("%s\n"), DecIP(szDecIP, dwNetBroadcast));
+		lstrcat(szOutText, szOutTmp);
+		wsprintf(szOutTmp, TEXT("%lu\n"), dwNetHosts);
+		lstrcat(szOutText, szOutTmp);
+		SetDlgItemText(hWnd, IDC_OUT_DEC, szOutText);
 
-		wsprintf(out_buf, TEXT("%s\n"), bin(bstr, net0.ip.adr));
-		wsprintf(out_tmp, TEXT("\n"));
-		lstrcat(out_buf, out_tmp);
-		wsprintf(out_tmp, TEXT("%s\n"), bin(bstr, net0.mask.adr));
-		lstrcat(out_buf, out_tmp);
-		wsprintf(out_tmp, TEXT("%s\n"), bin(bstr, net_name.adr));
-		lstrcat(out_buf, out_tmp);
-		wsprintf(out_tmp, TEXT("%s\n"), bin(bstr, net_name.adr + 1));
-		lstrcat(out_buf, out_tmp);
-		wsprintf(out_tmp, TEXT("%s\n"), bin(bstr, net_broadcast.adr - 1));
-		lstrcat(out_buf, out_tmp);
-		wsprintf(out_tmp, TEXT("%s\n"), bin(bstr, net_broadcast.adr));
-		lstrcat(out_buf, out_tmp);
-		wsprintf(out_tmp, TEXT("\n"));
-		lstrcat(out_buf, out_tmp);
-		SetWindowText(hOutBin, out_buf);
+		wsprintf(szOutText, TEXT("%s\n"), BinIP(szBinIP, dwIP.adr));
+		wsprintf(szOutTmp, TEXT("\n"));
+		lstrcat(szOutText, szOutTmp);
+		wsprintf(szOutTmp, TEXT("%s\n"), BinIP(szBinIP, dwMask));
+		lstrcat(szOutText, szOutTmp);
+		wsprintf(szOutTmp, TEXT("%s\n"), BinIP(szBinIP, dwNetName));
+		lstrcat(szOutText, szOutTmp);
+		wsprintf(szOutTmp, TEXT("%s\n"), BinIP(szBinIP, dwNetMin));
+		lstrcat(szOutText, szOutTmp);
+		wsprintf(szOutTmp, TEXT("%s\n"), BinIP(szBinIP, dwNetMax));
+		lstrcat(szOutText, szOutTmp);
+		wsprintf(szOutTmp, TEXT("%s\n"), BinIP(szBinIP, dwNetBroadcast));
+		lstrcat(szOutText, szOutTmp);
+		wsprintf(szOutTmp, TEXT("\n"));
+		lstrcat(szOutText, szOutTmp);
+		SetDlgItemText(hWnd, IDC_OUT_BIN, szOutText);
 
-		return TRUE;
+		SendMessage(hNetList, LB_RESETCONTENT, 0, 0);
+		for (INT i = 0; i < cNets; i++)
+		{
+			wsprintf(szOutTmp, TEXT("%d\t%s\t%s/%d"), i + 1, stNets[i].name, DecIP(szDecIP, stNets[i].ip.adr), GetMaskPrefix(stNets[i].mask.adr));
+			SendMessage(hNetList, LB_ADDSTRING, 0, (LPARAM)szOutTmp);
+		}
 
+		wsprintf(szOutTmp, TEXT("Доступно IP: %lu"), dwAvIP);
+		SetDlgItemText(hWnd, IDC_ALL_IP, szOutTmp);
+
+		return FALSE;
+	}
 	case WM_CLOSE:
-		free(AllNet);
+	{
+		free(stNets);
 		EndDialog(hWnd, 0);
 		return TRUE;
+	}
 	}
 	return FALSE;
 }
 
-BOOL CALLBACK AddNet(HWND hWnd, UINT uMessage, WPARAM wParam, LPARAM lParam)
+BOOL CALLBACK AddNetProc(HWND hWnd, UINT uMessage, WPARAM wParam, LPARAM lParam)
 {
-	HWND hPrev;
-	static HWND hNetName;
-	static HWND hNetNum;
-	static HWND hFullIP;
-	static HWND hFullMask;
-	static HWND hNetList;
-	static HWND hAllIP;
-	TCHAR NetName[32];
-	TCHAR TmpStr[32];
-	TCHAR NetStr[128];
-	int Hosts = 0;
+	static HWND hNet0Mask;
+	static HWND hPrev;
+	NET stNet0;
+	NET stNet;
+	TCHAR szNet0IP[16];
+	TCHAR szNetName[32];
+	DWORD nNetHosts = 0;
+	static INT cNetName = 1;
 
 	switch (uMessage)
 	{
 	case WM_INITDIALOG:
 	{
 		hPrev = GetParent(hWnd);
-		hFullIP = GetDlgItem(hPrev, IDC_FULL_IP);
-		hFullMask = GetDlgItem(hPrev, IDC_FULL_MASK);
-		hNetList = GetDlgItem(hPrev, IDC_NET_LIST);
-		hNetName = GetDlgItem(hWnd, IDC_ADD_NAME);
-		hNetNum = GetDlgItem(hWnd, IDC_ADD_HOSTS);
-		hAllIP = GetDlgItem(hPrev, IDC_ALL_IP);
+		hNet0Mask = GetDlgItem(hPrev, IDC_FULL_MASK);
 
-		const int tab_stops[2] = { 100, 75 };
-		SendMessage(hNetList, LB_SETTABSTOPS, 2, (LPARAM)tab_stops);
-		SendMessage(hNetList, LB_SETCOLUMNWIDTH, 400, 0);
-	}
+		wsprintf(szNetName, TEXT("Сеть %d"), cNetName);
+		SetDlgItemText(hWnd, IDC_ADD_NAME, szNetName);
 		return TRUE;
-
+	}
 	case WM_COMMAND:
+	{
 		if (LOWORD(wParam) == IDC_ADD_OK)
 		{
-			GetWindowText(hNetName, NetName, 32);
-			GetWindowText(hNetNum, TmpStr, 32);
-			Hosts = _ttoi(TmpStr);
-			if (lstrlen(NetName) == 0)
+			GetDlgItemText(hWnd, IDC_ADD_NAME, szNetName, sizeof(szNetName));
+			nNetHosts = GetDlgItemInt(hWnd, IDC_ADD_HOSTS, NULL, FALSE);
+			if (lstrlen(szNetName) == 0)
 				MessageBox(hWnd, TEXT("Введите нвзвание сети"), 0, MB_OK);
 			else
-				if (Hosts == 0)
+				if (nNetHosts == 0)
 					MessageBox(hWnd, TEXT("Введите количество хостов в сети"), 0, MB_OK);
 				else
 				{
-					AllCount++;
-					AllNet = (NET*)realloc(AllNet, AllCount * 72);
-					if (AllNet == NULL)
-						MessageBox(hWnd, 0, 0, 0);
-					else
+					GetDlgItemText(hPrev, IDC_FULL_IP, szNet0IP, sizeof(szNet0IP));
+					_stscanf(szNet0IP, TEXT("%hhu.%hhu.%hhu.%hhu"), &stNet0.ip.oct[3], &stNet0.ip.oct[2], &stNet0.ip.oct[1], &stNet0.ip.oct[0]);
+					stNet0.mask.adr = 0xFFFFFFFF << (SendMessage(hNet0Mask, CB_GETCURSEL, 0, 0) + 2);
+
+					lstrcpy(stNet.name, szNetName);
+					stNet.mask.adr = GetMaskOfHosts(nNetHosts);
+
+					switch (AddNet(stNet0, stNet, TRUE))
 					{
-						lstrcpy(AllNet[AllCount - 1].name, NetName);
-
-						AllNet[AllCount - 1].mask.adr = get_mask(Hosts);
-						AllIP -= ~get_mask(Hosts) + 1;
-						wsprintf(NetStr, TEXT("Доступно IP: %lu"), AllIP);
-						SetWindowText(hAllIP, NetStr);
-
-						NET net0;
-						GetWindowText(hFullIP, TmpStr, 16);
-						_stscanf(TmpStr, TEXT("%hhu.%hhu.%hhu.%hhu"), &net0.ip.oct[3], &net0.ip.oct[2], &net0.ip.oct[1], &net0.ip.oct[0]);
-						net0.mask.adr = 0xFFFFFFFF << SendMessage(hFullMask, CB_GETCURSEL, 0, 0);
-
-						SendMessage(hNetList, LB_RESETCONTENT, 0, 0);
-
-						AllNet[0].ip.adr = net0.ip.adr; // &net0.mask.adr;
-						wsprintf(NetStr, TEXT("%s\t%s/%d"), AllNet[0].name, dec(TmpStr, AllNet[0].ip.adr), GetMaskPrefix(AllNet[0].mask.adr));
-						SendMessage(hNetList, LB_ADDSTRING, 0, (LPARAM)NetStr);
-						for (int i = 1; i < AllCount; i++)
-						{
-							AllNet[i].ip.adr = AllNet[i - 1].ip.adr + ~AllNet[i - 1].mask.adr + 1;
-							wsprintf(NetStr, TEXT("%s\t%s/%d"), AllNet[i].name, dec(TmpStr, AllNet[i].ip.adr), GetMaskPrefix(AllNet[i].mask.adr));
-							SendMessage(hNetList, LB_ADDSTRING, 0, (LPARAM)NetStr);
-						}
-
-
-
+					case -1:
+						MessageBox(hWnd, TEXT("Не хватает доступных адресов"), NULL, MB_ICONHAND | MB_OK);
+						break;
+					case 0:
+						MessageBox(hWnd, TEXT("Ошибка выделения памяти"), NULL, MB_ICONHAND | MB_OK);
+						SendMessage(hWnd, WM_CLOSE, 0, 0);
+					case 1:
+						cNetName++;
+						SendMessage(hWnd, WM_CLOSE, 0, 0);
 					}
-					SendMessage(hWnd, WM_CLOSE, 0, 0);
 				}
 		}
 		return TRUE;
-
+	}
 	case WM_CLOSE:
+	{
 		EndDialog(hWnd, 0);
 		return TRUE;
+	}
 	}
 	return FALSE;
 }
 
-TCHAR* dec(TCHAR* Buf, DWORD n)
+TCHAR* DecIP(TCHAR* szBuf, DWORD dwIP)
 {
-	union ip_u tmp;
-	tmp.adr = n;
-	wsprintf(Buf, TEXT("%d.%d.%d.%d"), tmp.oct[3], tmp.oct[2], tmp.oct[1], tmp.oct[0]);
-	return Buf;
+	union unIP unTmp;
+	unTmp.adr = dwIP;
+	wsprintf(szBuf, TEXT("%d.%d.%d.%d"), unTmp.oct[3], unTmp.oct[2], unTmp.oct[1], unTmp.oct[0]);
+	return szBuf;
 }
 
-TCHAR* bin(TCHAR* Buf, DWORD n)
+TCHAR* BinIP(TCHAR* szBuf, DWORD dwIP)
 {
-	int r = 0;
-	for (DWORD i = 0x80000000; i > 0; i >>= 1)
+	INT iIndex = 0;
+	for (DWORD nBit = 0x80000000; nBit > 0; nBit >>= 1)
 	{
-		Buf[r++] = (n & i) ? '1' : '0';
-		if ((i == 0x01000000) | (i == 0x10000) | (i == 0x100))
-			Buf[r++] = '.';
+		szBuf[iIndex++] = (dwIP & nBit) ? '1' : '0';
+		if ((nBit == 0x01000000) | (nBit == 0x00010000) | (nBit == 0x00000100))
+			szBuf[iIndex++] = '.';
 	}
-	Buf[r] = 0;
-	return Buf;
+	szBuf[iIndex] = 0;
+	return szBuf;
 }
 
-DWORD get_mask(DWORD hosts)
+DWORD GetMaskOfHosts(DWORD cHosts)
 {
-	int i = 0;
-	hosts++;
-	while (hosts != 1)
+	INT i = 0;
+	cHosts++;
+	while (cHosts != 1)
 	{
-		hosts >>= 1;
+		cHosts >>= 1;
 		i++;
 	}
 	while (i > 0)
 	{
-		hosts <<= 1;
-		hosts |= 1;
+		cHosts <<= 1;
+		cHosts |= 1;
 		i--;
 	}
-	return ~hosts;
+	return ~cHosts;
 }
 
-int GetMaskPrefix(DWORD mask)
+INT GetMaskPrefix(DWORD dwMask)
 {
-	int Prefix = 0;
-	while ((mask << Prefix) != 0)
-		Prefix++;
-	return Prefix;
+	INT nPrefix = 0;
+	while ((dwMask << nPrefix) != 0)
+		nPrefix++;
+	return nPrefix;
+}
+
+VOID SortNets(VOID)
+{
+	NET stTemp;
+	for (INT i = 0; i < cNets - 1; i++)
+		for (INT j = 0; j < cNets - 1; j++)
+			if (~stNets[j].mask.adr < ~stNets[j + 1].mask.adr)
+			{
+				stTemp = stNets[j];
+				stNets[j] = stNets[j + 1];
+				stNets[j + 1] = stTemp;
+			}
+}
+
+INT AddNet(NET stNet0, NET stNet, BOOL fSort)
+{
+	if (~stNet.mask.adr + 1 > dwAvIP)
+		return -1;
+	else
+	{
+		stNets = (NET*)realloc(stNets, (cNets + 1) * sizeof(NET));
+		if (stNets == NULL)
+			return 0;
+		else
+		{
+			stNets[cNets] = stNet;
+
+			cNets++;
+			dwAvIP -= ~stNet.mask.adr + 1;
+
+			if (fSort)
+				SortNets();
+
+			stNets[0].ip.adr = stNet0.ip.adr & stNet0.mask.adr;
+			for (INT i = 1; i < cNets; i++)
+				stNets[i].ip.adr = stNets[i - 1].ip.adr + ~stNets[i - 1].mask.adr + 1;
+
+			return 1;
+		}
+	}
+}
+
+VOID ClrNets(VOID)
+{
+	if (stNets)
+		free(stNets);
+	stNets = NULL;
+	cNets = 0;
 }

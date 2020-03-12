@@ -27,4 +27,4 @@
 #define IDC_ADD_HOSTS				1023
 #define IDC_ADD_OK					1024
 
-#define WM_NET_INFO					WM_USER + 0x100
+#define APPICON						2000
